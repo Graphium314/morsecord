@@ -80,7 +80,7 @@ mod tests {
         for _ in 0..10 {
             let result = gen.next().unwrap();
             let s = result.as_str();
-            println!("Generated: {}", s);
+            println!("Generated: {s}");
 
             // 5文字であることを確認
             assert_eq!(s.chars().count(), 5);

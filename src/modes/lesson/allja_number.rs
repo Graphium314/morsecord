@@ -12,7 +12,7 @@ impl AllJANumberGen {
             (2..=48)
                 .map(|x| {
                     if x < 10 {
-                        format!("0{}", x)
+                        format!("0{x}")
                     } else {
                         x.to_string()
                     }

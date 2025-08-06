@@ -4,7 +4,7 @@ use serenity::model::prelude::application_command::ApplicationCommandInteraction
 use serenity::prelude::Context;
 use std::sync::{Arc, Mutex};
 
-use crate::{bot::BotStateMode, modes::lesson::LessonGen};
+use crate::bot::BotStateMode;
 
 impl crate::bot::Bot {
     pub async fn run_command_lesson_start(
@@ -39,12 +39,12 @@ impl crate::bot::Bot {
                 Ok(())
             })?;
 
-        let min_speed = min_speed.unwrap_or(15.0_f32.min(max_speed.unwrap_or(std::f32::NAN)));
+        let min_speed = min_speed.unwrap_or(15.0_f32.min(max_speed.unwrap_or(f32::NAN)));
         let max_speed = max_speed.unwrap_or(20.0_f32.max(min_speed));
 
         anyhow::ensure!(min_speed <= max_speed, "min_speed > max_speed");
 
-        let min_freq = min_freq.unwrap_or(500.0_f32.min(max_freq.unwrap_or(std::f32::NAN)));
+        let min_freq = min_freq.unwrap_or(500.0_f32.min(max_freq.unwrap_or(f32::NAN)));
         let max_freq = max_freq.unwrap_or(1000.0_f32.max(min_freq));
 
         anyhow::ensure!(min_freq <= max_freq, "min_freq > max_freq");

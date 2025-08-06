@@ -1,4 +1,4 @@
-use std::{fs::File, io::BufReader, usize};
+use std::{fs::File, io::BufReader};
 
 use serenity::framework::StandardFramework;
 use serenity::prelude::Client;

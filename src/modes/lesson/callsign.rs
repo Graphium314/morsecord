@@ -44,7 +44,7 @@ impl Iterator for JaCallsignGen {
         };
 
         let s = if rand::random::<u8>() < 50 {
-            s + "/" + &rand_char(NUM)
+            s + "/" + rand_char(NUM)
         } else {
             s
         };

@@ -15,37 +15,37 @@ impl ACAGNumberGen {
                     132, 1004, 1012, 1017, 1029, 1032, 1044, 1054, 1056, 1057, 1058, 1061, 1065,
                     1068,
                 ],
-                |x| format!("0{}", x),
+                |x| format!("0{x}"),
             ),
             //青森
-            filter_and_to_string_numbers(vec![201..=210, 2001..=2008], &[], |x| format!("0{}", x)),
+            filter_and_to_string_numbers(vec![201..=210, 2001..=2008], &[], |x| format!("0{x}")),
             //岩手
             filter_and_to_string_numbers(
                 vec![301..=316, 3001..=3013],
                 &[306, 312, 3003, 3011, 3012],
-                |x| format!("0{}", x),
+                |x| format!("0{x}"),
             ),
             //秋田
             filter_and_to_string_numbers(
                 vec![401..=415, 4001..=4009],
                 &[405, 408, 4003, 4006, 4009],
-                |x| format!("0{}", x),
+                |x| format!("0{x}"),
             ),
             //山形
             filter_and_to_string_numbers(vec![501..=513, 5001..=5011], &[5004, 5009, 5010], |x| {
-                format!("0{}", x)
+                format!("0{x}")
             }),
             //宮城
             filter_and_to_string_numbers(
                 vec![602..=616, 6001..=6016, 60101..=60105],
                 &[604, 610, 6005, 6007, 6009, 6011, 6012, 6015],
-                |x| format!("0{}", x),
+                |x| format!("0{x}"),
             ),
             //福島
             filter_and_to_string_numbers(
                 vec![701..=720, 7001..=7017],
                 &[704, 706, 709, 710, 712, 713, 716, 7001, 7004, 7008, 7009],
-                |x| format!("0{}", x),
+                |x| format!("0{x}"),
             ),
             //新潟
             filter_and_to_string_numbers(
@@ -54,13 +54,13 @@ impl ACAGNumberGen {
                     803, 807, 814, 815, 817, 819, 820, 821, 8003, 8005, 8006, 8009, 8010, 8012,
                     8014,
                 ],
-                |x| format!("0{}", x),
+                |x| format!("0{x}"),
             ),
             //長野
             filter_and_to_string_numbers(
                 vec![901..=921, 9001..=9017],
                 &[916, 917, 9007, 9016],
-                |x| format!("0{}", x),
+                |x| format!("0{x}"),
             ),
             //東京
             filter_and_to_string_numbers(
