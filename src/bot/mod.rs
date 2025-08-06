@@ -16,6 +16,7 @@ pub enum BotStateMode {
     #[default]
     Normal,
     Lesson(Arc<Mutex<crate::modes::lesson::LessonModeState>>),
+    LessonLong(Arc<Mutex<crate::modes::lesson_long::LessonLongModeState>>),
 }
 
 impl BotStateMode {
@@ -27,6 +28,10 @@ impl BotStateMode {
             BotStateMode::Lesson(s) => {
                 log::info!("terminating callsign lesson");
                 crate::modes::lesson::end(s.clone()).ok()
+            }
+            BotStateMode::LessonLong(s) => {
+                log::info!("terminating long lesson");
+                crate::modes::lesson_long::end(s.clone()).ok()
             }
         }
     }
@@ -161,6 +166,7 @@ impl EventHandler for Bot {
         let _ = self.register_commands_vc(&ctx).await;
         let _ = self.register_commands_cw(&ctx).await;
         let _ = self.register_commands_cw_lesson(&ctx).await;
+        let _ = self.register_commands_cw_lesson_long(&ctx).await;
         log::info!("commands registered");
     }
 
@@ -176,6 +182,7 @@ impl EventHandler for Bot {
                 "cw-freq" => self.run_command_freq(&ctx, &command).await,
                 "cw-start-lesson" => self.run_command_lesson_start(&ctx, &command).await,
                 "cw-end-lesson" => self.run_command_lesson_end(&ctx, &command).await,
+                "cw-start-long-lesson" => self.run_command_lesson_long_start(&ctx, &command).await,
                 _ => Ok("not implemented :(".to_string()),
             }
             .unwrap_or_else(|e| {
@@ -237,6 +244,10 @@ impl EventHandler for Bot {
 
             BotStateMode::Lesson(s) => {
                 crate::modes::lesson::on_message(&ctx, &message, s.clone()).await
+            }
+
+            BotStateMode::LessonLong(s) => {
+                crate::modes::lesson_long::on_message(&ctx, &message, s.clone()).await
             }
         }
         .unwrap_or_else(|e| {

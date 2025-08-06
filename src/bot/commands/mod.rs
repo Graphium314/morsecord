@@ -1,5 +1,6 @@
 pub mod cw;
 pub mod cw_lesson;
+pub mod cw_lesson_long;
 pub mod neko;
 pub mod vc;
 
