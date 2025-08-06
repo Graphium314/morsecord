@@ -17,11 +17,34 @@ use serenity::model::prelude::{GuildId, UserId};
 use serenity::prelude::{Context, Mentionable};
 use songbird::constants::SAMPLE_RATE_RAW;
 
+fn get_lesson_gen(probset: &str) -> anyhow::Result<LessonGen> {
+    // TODO: use braces to support nesting
+    let (probset_name, probset_args_str) = probset.split_once(':').unwrap_or((probset, ""));
+
+    use crate::modes::lesson;
+
+    let gen: LessonGen = match probset_name {
+        "call_ja" => Box::new(lesson::callsign::JaCallsignGen {}),
+        "file" => Box::new(lesson::file::FileSourceGen::new(probset_args_str)?),
+        "nr_allja" => Box::new(lesson::allja_number::AllJANumberGen::new()),
+        "nr_acag" => Box::new(lesson::acag_number::ACAGNumberGen::new()),
+        "rand5_jp" => Box::new(lesson::japanese::JapaneseFiveCharGen {}),
+        _ => {
+            anyhow::bail!(
+                "unknown probset.\n".to_owned()
+                    + "available selections are: call_ja, file, nr_allja, nr_acag, rand5_jp"
+            )
+        }
+    };
+    Ok(gen)
+}
+
+
 pub trait LessonAnswer: Send {
     // given uppercase
     fn check(&self, s: &str) -> bool;
 
-    fn into_str<'a>(&'a self) -> &'a str;
+    fn as_str(&self) -> &str;
 
     fn clone_boxed(&self) -> Box<dyn LessonAnswer>;
 }
@@ -31,8 +54,8 @@ impl LessonAnswer for String {
         self == s
     }
 
-    fn into_str(&self) -> &str {
-        &self
+    fn as_str(&self) -> &str {
+        self
     }
 
     fn clone_boxed(&self) -> Box<dyn LessonAnswer> {
@@ -66,9 +89,10 @@ impl LessonModeState {
     pub fn new(
         speed_range: std::ops::RangeInclusive<f32>,
         freq_range: std::ops::RangeInclusive<f32>,
-        gen: LessonGen,
-    ) -> Self {
-        Self {
+        probset: &str,
+    ) -> anyhow::Result<Self> {
+        let gen = get_lesson_gen(probset)?;
+        Ok(Self {
             speed_range,
             freq_range,
             last_ans: None,
@@ -82,7 +106,7 @@ impl LessonModeState {
             current_repeat: 0,
             repeat_counts: Vec::new(),
             user_count: HashMap::new(),
-        }
+        })
     }
 }
 
@@ -268,7 +292,7 @@ async fn play(
     let s = &st.last_ans;
     let s = match s {
         None => return Ok(()),
-        Some(s) => " ".to_string() + s.into_str(), // to keep margin between last playback
+        Some(s) => " ".to_string() + s.as_str(), // to keep margin between last playback
     };
 
     let token = tokio_util::sync::CancellationToken::new();
@@ -328,7 +352,7 @@ pub async fn play_next(
             }
         };
 
-        log::info!("next: {}", next_str.into_str());
+        log::info!("next: {}", next_str.as_str());
 
         let c = state.current_repeat;
         if c != 0 {

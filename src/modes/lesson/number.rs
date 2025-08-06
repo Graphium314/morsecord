@@ -18,7 +18,7 @@ impl LessonAnswer for LessonAnswerContestNumber {
         self.0[4..] == *s
     }
 
-    fn into_str(&self) -> &str {
+    fn as_str(&self) -> &str {
         &self.0
     }
 

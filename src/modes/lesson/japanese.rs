@@ -27,7 +27,7 @@ impl LessonAnswer for NormalizedJapaneseAnswer {
         self.normalized == normalized_input
     }
 
-    fn into_str(&self) -> &str {
+    fn as_str(&self) -> &str {
         &self.original
     }
 
@@ -79,7 +79,7 @@ mod tests {
 
         for _ in 0..10 {
             let result = gen.next().unwrap();
-            let s = result.into_str();
+            let s = result.as_str();
             println!("Generated: {}", s);
 
             // 5文字であることを確認

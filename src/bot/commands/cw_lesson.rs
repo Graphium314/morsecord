@@ -6,28 +6,6 @@ use std::sync::{Arc, Mutex};
 
 use crate::{bot::BotStateMode, modes::lesson::LessonGen};
 
-pub fn get_lesson_gen(probset: &str) -> anyhow::Result<LessonGen> {
-    // TODO: use braces to support nesting
-    let (probset_name, probset_args_str) = probset.split_once(':').unwrap_or((probset, ""));
-
-    use crate::modes::lesson;
-
-    let gen: LessonGen = match probset_name {
-        "call_ja" => Box::new(lesson::callsign::JaCallsignGen {}),
-        "file" => Box::new(lesson::file::FileSourceGen::new(probset_args_str)?),
-        "nr_allja" => Box::new(lesson::allja_number::AllJANumberGen::new()),
-        "nr_acag" => Box::new(lesson::acag_number::ACAGNumberGen::new()),
-        "rand5_jp" => Box::new(lesson::japanese::JapaneseFiveCharGen {}),
-        _ => {
-            anyhow::bail!(
-                "unknown probset.\n".to_owned()
-                    + "available selections are: call_ja, file, nr_allja, nr_acag, rand5_jp"
-            )
-        }
-    };
-    Ok(gen)
-}
-
 impl crate::bot::Bot {
     pub async fn run_command_lesson_start(
         &self,
@@ -75,14 +53,13 @@ impl crate::bot::Bot {
         let freq_range = min_freq..=max_freq;
 
         probset.make_ascii_lowercase();
-        let gen = get_lesson_gen(&probset)?;
 
         let gid = command.guild_id.context("not in guild")?;
         let state = Arc::new(Mutex::new(crate::modes::lesson::LessonModeState::new(
             speed_range,
             freq_range,
-            gen,
-        )));
+            probset.as_str(),
+        )?));
         crate::modes::lesson::start(ctx, gid, state.clone())
             .await
             .context("internal error")?;

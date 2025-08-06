@@ -51,6 +51,6 @@ impl Iterator for AllJANumberGen {
 fn test_allja_number() {
     let mut gen = AllJANumberGen::new();
     for _ in 0..100 {
-        println!("{}", gen.next().unwrap().into_str());
+        println!("{}", gen.next().unwrap().as_str());
     }
 }
