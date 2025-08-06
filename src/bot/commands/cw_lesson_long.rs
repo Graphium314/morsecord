@@ -36,7 +36,7 @@ impl crate::bot::Bot {
                 "probset" => probset = vs?.to_string(),
                 "length" => {
                     length = Some(v
-                        .as_u64().context("value is not u64")? as usize);
+                        .as_f64().context("value is not f64")? as usize);
                 }
                 _ => (),
             }
@@ -44,7 +44,7 @@ impl crate::bot::Bot {
 
         let speed = speed.unwrap_or(20.0);
         let freq = freq.unwrap_or(800.0);
-        let length = length.unwrap_or(100);
+        let length = length.unwrap_or(10);
 
         probset.make_ascii_lowercase();
 
