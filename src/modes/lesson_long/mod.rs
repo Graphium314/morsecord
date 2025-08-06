@@ -8,7 +8,7 @@ use serenity::prelude::Context;
 use songbird::constants::SAMPLE_RATE_RAW;
 use unicode_normalization::UnicodeNormalization as _;
 use std::sync::{Arc, Mutex};
-use strsim::levenshtein;
+mod levenshtein;
 
 pub struct LessonLongModeState {
     text: String,
@@ -99,9 +99,12 @@ pub async fn on_message(
     let text = normalize_text(&text);
     let input = normalize_text(&input);
 
-    let dist = levenshtein(&text, &input);
+    let (m_input, m_text, dist) = levenshtein::compare_str(&input, &text);
+    let m_diff = m_input.chars().zip(m_text.chars())
+        .map(|(a, b)| if a == b { ' ' } else { '*' })
+        .collect::<String>();
     let reply = format!(
-        "Difference: {dist}\n```diff\n-{input}\n+{text}\n```\n",
+        "Difference: {dist}\n```diff\n-{m_input}\n+{m_text}\n {m_diff}\n```",
     );
     // msg.channel_id.say(&ctx.http, reply).await?;
     msg.reply_ping(&ctx.http, reply).await?;
