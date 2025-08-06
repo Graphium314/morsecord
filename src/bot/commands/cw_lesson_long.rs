@@ -12,8 +12,6 @@ use crate::{
     modes::lesson_long::{start, LessonLongModeState},
 };
 
-
-
 impl crate::bot::Bot {
     pub async fn run_command_lesson_long_start(
         &self,
@@ -35,8 +33,7 @@ impl crate::bot::Bot {
                 "freq" => freq = Some(vf?),
                 "probset" => probset = vs?.to_string(),
                 "length" => {
-                    length = Some(v
-                        .as_f64().context("value is not f64")? as usize);
+                    length = Some(v.as_f64().context("value is not f64")? as usize);
                 }
                 _ => (),
             }

@@ -39,7 +39,6 @@ fn get_lesson_gen(probset: &str) -> anyhow::Result<LessonGen> {
     Ok(gen)
 }
 
-
 pub trait LessonAnswer: Send {
     // given uppercase
     fn check(&self, s: &str) -> bool;

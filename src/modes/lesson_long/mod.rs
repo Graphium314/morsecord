@@ -6,8 +6,8 @@ use serenity::model::channel::Message;
 use serenity::model::prelude::GuildId;
 use serenity::prelude::Context;
 use songbird::constants::SAMPLE_RATE_RAW;
-use unicode_normalization::UnicodeNormalization as _;
 use std::sync::{Arc, Mutex};
+use unicode_normalization::UnicodeNormalization as _;
 mod levenshtein;
 
 pub struct LessonLongModeState {
@@ -29,29 +29,17 @@ pub fn get_lesson_str(probset: &str, length: usize) -> anyhow::Result<String> {
             lesson_long::prob_koch_method(length, args)?
         }
         _ => {
-            anyhow::bail!(
-                "unknown probset.\n".to_owned()
-                    + "available selections are: alpha, koch"
-            )
+            anyhow::bail!("unknown probset.\n".to_owned() + "available selections are: alpha, koch")
         }
     };
     Ok(prob)
 }
 
 impl LessonLongModeState {
-    pub fn new(
-        probset: &str,
-        length: usize,
-        speed: f32,
-        freq: f32,
-    ) -> anyhow::Result<Self> {
-        let text = get_lesson_str(probset, length).context("failed to get lesson text")?;
+    pub fn new(probset: &str, length: usize, speed: f32, freq: f32) -> anyhow::Result<Self> {
+        let text = get_lesson_str(probset, length)?;
 
-        Ok(Self {
-            text,
-            speed,
-            freq,
-        })
+        Ok(Self { text, speed, freq })
     }
 }
 
@@ -76,10 +64,12 @@ pub fn end(_state: Arc<Mutex<LessonLongModeState>>) -> anyhow::Result<String> {
     Ok("Long lesson ended".to_string())
 }
 
-fn normalize_text(s: &str) -> String {
-    // let s = s.replace(" ", "");
-    // let s = s.replace("　", "");
-    let s = s.replace(|c: char| c.is_whitespace(), "");
+fn normalize_text(s: &str, elim_spaces: bool) -> String {
+    let s = if elim_spaces {
+        s.replace(|c: char| c.is_whitespace(), "")
+    } else {
+        s.to_string()
+    };
     let s = UCSStr::from_str(&s).upper_case().katakana().to_string();
     s.nfkd().collect::<String>()
 }
@@ -96,25 +86,24 @@ pub async fn on_message(
     let input = msg.content.clone();
 
     // normalize
-    let text = normalize_text(&text);
-    let input = normalize_text(&input);
+    let text = normalize_text(&text, false); // problem text should keep spaces
+    let input = normalize_text(&input, true);
 
     let (m_input, m_text, dist) = levenshtein::compare_str(&input, &text);
-    let m_diff = m_input.chars().zip(m_text.chars())
+    let m_diff = m_input
+        .chars()
+        .zip(m_text.chars())
         .map(|(a, b)| if a == b { ' ' } else { '*' })
         .collect::<String>();
-    let reply = format!(
-        "Difference: {dist}\n```diff\n-{m_input}\n+{m_text}\n {m_diff}\n```",
-    );
+    let reply = format!("Difference: {dist}\n```diff\n-{m_input}\n+{m_text}\n {m_diff}\n```",);
     // msg.channel_id.say(&ctx.http, reply).await?;
     msg.reply_ping(&ctx.http, reply).await?;
     Ok(())
 }
 
 pub fn prob_alpha(length: usize) -> anyhow::Result<String> {
-
     let mut rng = rand::thread_rng();
-    let mut s = String::with_capacity(length*3/2);
+    let mut s = String::with_capacity(length * 3 / 2);
     for i in 0..length {
         let c = rng.gen_range(b'A'..=b'Z') as char;
         s.push(c);
@@ -126,7 +115,6 @@ pub fn prob_alpha(length: usize) -> anyhow::Result<String> {
     Ok(s)
 }
 
-
 #[rustfmt::skip]
 const KOCH_CHARS: &[char] = &[
     'K', 'M', 'U', 'R', 'E', 'S', 'N', 'A', 'P', 'T',
@@ -137,9 +125,7 @@ const KOCH_CHARS: &[char] = &[
 ];
 
 pub fn prob_koch_method(length: usize, args: &str) -> anyhow::Result<String> {
-    let level = args
-        .parse::<usize>()
-        .context("invalid level argument")?;
+    let level = args.parse::<usize>().context("invalid level argument")?;
 
     if !(2..(KOCH_CHARS.len())).contains(&(level + 1)) {
         anyhow::bail!("level must be in range 1..{}", KOCH_CHARS.len() - 1);
@@ -148,7 +134,7 @@ pub fn prob_koch_method(length: usize, args: &str) -> anyhow::Result<String> {
     let allowed_chars = &KOCH_CHARS[0..level + 1];
 
     let mut rng = rand::thread_rng();
-    let mut s = String::with_capacity(length*3/2);
+    let mut s = String::with_capacity(length * 3 / 2);
     for i in 0..length {
         let c = allowed_chars[rng.gen_range(0..allowed_chars.len()) as usize];
         s.push(c);
