@@ -127,8 +127,8 @@ const KOCH_CHARS: &[char] = &[
 pub fn prob_koch_method(length: usize, args: &str) -> anyhow::Result<String> {
     let level = args.parse::<usize>().context("invalid level argument")?;
 
-    if !(2..(KOCH_CHARS.len())).contains(&(level + 1)) {
-        anyhow::bail!("level must be in range 1..{}", KOCH_CHARS.len() - 1);
+    if !(2..=(KOCH_CHARS.len())).contains(&(level + 1)) {
+        anyhow::bail!("level must be in range [1, {}]", KOCH_CHARS.len() - 1);
     }
 
     let allowed_chars = &KOCH_CHARS[0..level + 1];
