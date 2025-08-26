@@ -48,21 +48,21 @@ impl CWAudioPCM {
     pub fn get_duration(s: &str, wpm: f32) -> std::time::Duration {
         let mut length = 2;
 
-        for c in s.chars() {
-            if c == ' ' {
+        for morse_code in crate::morse::get_morse_str(s.to_string()) {
+            if morse_code.0 == 0 {
+                // space
                 length += 4;
-                continue;
-            }
-
-            let (n, b) = crate::morse::get_morse(c);
-            for i in 0..n {
-                if b & (1 << i) != 0 {
-                    length += 4;
-                } else {
-                    length += 2;
+            } else {
+                let (n, b) = morse_code;
+                for i in 0..n {
+                    if b & (1 << i) != 0 {
+                        length += 4;
+                    } else {
+                        length += 2;
+                    }
                 }
+                length += 2;
             }
-            length += 2;
         }
 
         crate::morse::dot_time(wpm) * length
@@ -140,5 +140,35 @@ impl std::io::Read for CWAudioPCM {
 impl std::io::Seek for CWAudioPCM {
     fn seek(&mut self, _pos: std::io::SeekFrom) -> std::io::Result<u64> {
         unreachable!();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_cw_audio_brackets() {
+        // Test that bracket notation creates the correct audio events
+        // This validates that the audio generation correctly uses the morse module
+        let audio1 = CWAudioPCM::new("AR".to_string(), 20.0, 600.0, 48000);
+        let audio2 = CWAudioPCM::new("[AR]".to_string(), 20.0, 600.0, 48000);
+
+        // AR should have more events than [AR] because AR has a space between letters
+        // AR: A + space + R = multiple events
+        // [AR]: combined pattern = fewer events
+        assert!(audio1.events.len() > audio2.events.len(), 
+               "AR should have more events than [AR] due to the space between letters");
+    }
+
+    #[test]
+    fn test_cw_duration_brackets() {
+        // Test that duration calculation works correctly with brackets
+        let duration1 = CWAudioPCM::get_duration("AR", 20.0);
+        let duration2 = CWAudioPCM::get_duration("[AR]", 20.0);
+
+        // [AR] should be shorter than "AR" because there's no inter-character space
+        assert!(duration2 < duration1, 
+               "[AR] should have shorter duration than AR due to no inter-character space");
     }
 }

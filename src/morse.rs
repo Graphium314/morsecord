@@ -124,18 +124,81 @@ pub fn get_morse(c: char) -> (u8, u8) {
 
 pub fn get_morse_str(s: String) -> Vec<(u8, u8)> {
     let s = UCSStr::from_str(&s).upper_case().katakana().to_string();
-
     let s = s.nfkd().collect::<String>();
 
     let mut v = Vec::<(u8, u8)>::new();
-    for c in s.chars() {
-        let m = get_morse(c);
-        if m.0 == 0 && v.last().map(|x| x.0 == 0).unwrap_or(false) {
-            continue;
+    let mut i = 0;
+    let chars: Vec<char> = s.chars().collect();
+    
+    while i < chars.len() {
+        if chars[i] == '[' {
+            // Find the closing bracket
+            if let Some(close_pos) = find_closing_bracket(&chars, i) {
+                // Extract characters inside brackets and concatenate their Morse codes
+                let bracket_content: String = chars[i+1..close_pos].iter().collect();
+                if let Some(concatenated) = concatenate_morse_codes(&bracket_content) {
+                    v.push(concatenated);
+                }
+                i = close_pos + 1;
+            } else {
+                // No closing bracket found, treat '[' as a regular character
+                let m = get_morse(chars[i]);
+                if m.0 == 0 && v.last().map(|x| x.0 == 0).unwrap_or(false) {
+                    i += 1;
+                    continue;
+                }
+                v.push(m);
+                i += 1;
+            }
+        } else {
+            let m = get_morse(chars[i]);
+            if m.0 == 0 && v.last().map(|x| x.0 == 0).unwrap_or(false) {
+                i += 1;
+                continue;
+            }
+            v.push(m);
+            i += 1;
         }
-        v.push(m);
     }
     v
+}
+
+fn find_closing_bracket(chars: &[char], start: usize) -> Option<usize> {
+    for i in start + 1..chars.len() {
+        if chars[i] == ']' {
+            return Some(i);
+        }
+    }
+    None
+}
+
+fn concatenate_morse_codes(s: &str) -> Option<(u8, u8)> {
+    let mut total_length = 0u8;
+    let mut combined_pattern = 0u8;
+    
+    for c in s.chars() {
+        let (length, pattern) = get_morse(c);
+        if length == 0 {
+            // Skip whitespace characters inside brackets
+            continue;
+        }
+        
+        // Check if we can fit this pattern
+        if total_length + length > 8 {
+            // Pattern would be too long for u8, return None
+            return None;
+        }
+        
+        // Shift the existing pattern left and add the new pattern
+        combined_pattern = (combined_pattern << length) | pattern;
+        total_length += length;
+    }
+    
+    if total_length == 0 {
+        None
+    } else {
+        Some((total_length, combined_pattern))
+    }
 }
 
 pub fn dot_time(wpm: f32) -> std::time::Duration {
@@ -194,6 +257,87 @@ mod tests {
                 (2, 0b01),
                 (2, 0b01),
                 (2, 0b01),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_morse_brackets() {
+        // Test basic bracket notation - [AR] should concatenate A (.-) and R (.-.) into (.-.-)
+        // A = (2, 0b01) = .-
+        // R = (3, 0b010) = .-.
+        // [AR] = (5, 0b01010) = .-.-
+        assert_eq!(
+            get_morse_str("[AR]".to_string()),
+            [(5, 0b01010)]
+        );
+
+        // Test bracket with space before/after
+        assert_eq!(
+            get_morse_str("A [AR] B".to_string()),
+            [
+                (2, 0b01),    // A
+                (0, 0),       // space
+                (5, 0b01010), // [AR]
+                (0, 0),       // space
+                (4, 0b1000),  // B
+            ]
+        );
+
+        // Test multiple brackets
+        assert_eq!(
+            get_morse_str("[AR] [SK]".to_string()),
+            [
+                (5, 0b01010),  // [AR] = .-.-
+                (0, 0),        // space
+                (6, 0b000101), // [SK] = ...-.
+            ]
+        );
+    }
+
+    #[test]
+    fn test_morse_brackets_japanese() {
+        // Test Japanese characters in brackets - ホレ should be concatenated
+        // ホ = (3, 0b100) = -..
+        // レ = (3, 0b111) = ---
+        // [ホレ] = (6, 0b100111) = -..---
+        assert_eq!(
+            get_morse_str("[ホレ]".to_string()),
+            [(6, 0b100111)]
+        );
+    }
+
+    #[test]
+    fn test_morse_brackets_edge_cases() {
+        // Test empty brackets
+        assert_eq!(
+            get_morse_str("[]".to_string()),
+            []
+        );
+
+        // Test brackets with spaces inside (should ignore spaces)
+        assert_eq!(
+            get_morse_str("[A R]".to_string()),
+            [(5, 0b01010)] // Same as [AR]
+        );
+
+        // Test unmatched opening bracket
+        assert_eq!(
+            get_morse_str("[AR".to_string()),
+            [
+                (0, 0),       // '[' -> unknown character -> (0, 0)
+                (2, 0b01),    // A
+                (3, 0b010),   // R
+            ]
+        );
+
+        // Test normal text with bracket characters not forming pairs
+        assert_eq!(
+            get_morse_str("A[R".to_string()),
+            [
+                (2, 0b01),    // A
+                (0, 0),       // '[' -> unknown character -> (0, 0)
+                (3, 0b010),   // R
             ]
         );
     }
