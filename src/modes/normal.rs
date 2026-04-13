@@ -27,7 +27,14 @@ pub async fn on_message(ctx: &Context, msg: &Message, db: &sqlx::SqlitePool) -> 
         let mut handler = handler.lock().await;
         let source = crate::cw_audio::CWAudioPCM::new(s.to_string(), speed, freq, SAMPLE_RATE_RAW)
             .to_input();
-        handler.play_input(source);
+        let t = handler.play_input(source);
+        t.loop_for(3);
+        t.make_playable();
+        dbg!(t.play());
+        dbg!(t.get_info().await);
+
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+        dbg!(t.get_info().await);
     }
     Ok(())
 }
