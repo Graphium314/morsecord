@@ -1,5 +1,5 @@
 use anyhow::Context;
-use rand::seq::SliceRandom;
+use rand::seq::IndexedRandom;
 
 use super::LessonAnswerBox;
 
@@ -34,7 +34,7 @@ impl Iterator for FileSourceGen {
     type Item = LessonAnswerBox;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let v = self.data.choose(&mut rng)?;
         Some(Box::new(v.clone()))
     }

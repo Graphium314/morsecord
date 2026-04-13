@@ -1,16 +1,17 @@
 use anyhow::Context as _;
-use serenity::model::application::command::Command;
-use serenity::model::prelude::application_command::ApplicationCommandInteraction;
+use serenity::all::{CreateCommand, CreateCommandOption};
+use serenity::model::application::{CommandInteraction, CommandOptionType};
 use serenity::prelude::Context;
 use std::sync::{Arc, Mutex};
 
+use crate::bot::commands::{get_value_f64, get_value_str};
 use crate::bot::BotStateMode;
 
 impl crate::bot::Bot {
     pub async fn run_command_lesson_start(
         &self,
         ctx: &Context,
-        command: &ApplicationCommandInteraction,
+        command: &CommandInteraction,
     ) -> anyhow::Result<String> {
         let mut min_speed = None;
         let mut max_speed = None;
@@ -20,15 +21,13 @@ impl crate::bot::Bot {
 
         command
             .data
-            .options
+            .options()
             .iter()
             .try_fold::<_, _, anyhow::Result<()>>((), |_, x| {
-                let v = x.value.as_ref().context("value empty")?;
+                let vf = get_value_f64(&x.value).map(|x| x as f32);
+                let vs = get_value_str(&x.value);
 
-                let vf = v.as_f64().map(|x| x as f32).context("value is not f64");
-                let vs = v.as_str().context("value is not string");
-
-                match x.name.as_str() {
+                match x.name {
                     "min_speed" => min_speed = Some(vf?),
                     "max_speed" => max_speed = Some(vf?),
                     "min_freq" => min_freq = Some(vf?),
@@ -63,7 +62,7 @@ impl crate::bot::Bot {
         crate::modes::lesson::start(ctx, gid, state.clone())
             .await
             .context("internal error")?;
-        self.switch_mode(gid.0, BotStateMode::Lesson(state))?;
+        self.switch_mode(gid.into(), BotStateMode::Lesson(state))?;
 
         Ok("let's start lesson".to_string())
     }
@@ -71,72 +70,57 @@ impl crate::bot::Bot {
     pub async fn run_command_lesson_end(
         &self,
         _ctx: &Context,
-        command: &ApplicationCommandInteraction,
+        command: &CommandInteraction,
     ) -> anyhow::Result<String> {
         let r = self.switch_mode(
-            command.guild_id.context("no guild")?.0,
+            command.guild_id.context("no guild")?.into(),
             BotStateMode::Normal,
         )?;
 
         Ok(r)
     }
 
-    pub async fn register_commands_cw_lesson(&self, ctx: &Context) -> anyhow::Result<()> {
-        Command::create_global_application_command(&ctx.http, |command| {
-            command
-                .name("cw-start-lesson")
+    pub fn register_commands_cw_lesson() -> [CreateCommand; 2] {
+        [
+            CreateCommand::new("cw-start-lesson")
                 .description("start callsign lesson")
-                .create_option(|option| {
-                    option
-                        .name("min_speed")
-                        .description("minimum speed")
-                        .kind(serenity::model::prelude::command::CommandOptionType::Number)
-                        .min_number_value(5.0)
-                        .required(false)
-                })
-                .create_option(|option| {
-                    option
-                        .name("max_speed")
-                        .description("maximum speed")
-                        .kind(serenity::model::prelude::command::CommandOptionType::Number)
-                        .min_number_value(5.0)
-                        .required(false)
-                })
-                .create_option(|option| {
-                    option
-                        .name("min_freq")
-                        .description("minimum freq")
-                        .kind(serenity::model::prelude::command::CommandOptionType::Number)
+                .add_option(
+                    CreateCommandOption::new(
+                        CommandOptionType::Number,
+                        "min_speed",
+                        "minimum speed",
+                    )
+                    .min_number_value(5.0)
+                    .required(false),
+                )
+                .add_option(
+                    CreateCommandOption::new(
+                        CommandOptionType::Number,
+                        "max_speed",
+                        "maximum speed",
+                    )
+                    .min_number_value(5.0)
+                    .required(false),
+                )
+                .add_option(
+                    CreateCommandOption::new(CommandOptionType::Number, "min_freq", "minimum freq")
                         .min_number_value(200.0)
-                        .required(false)
-                })
-                .create_option(|option| {
-                    option
-                        .name("max_freq")
-                        .description("maximum freq")
-                        .kind(serenity::model::prelude::command::CommandOptionType::Number)
+                        .required(false),
+                )
+                .add_option(
+                    CreateCommandOption::new(CommandOptionType::Number, "max_freq", "maximum freq")
                         .min_number_value(200.0)
-                        .required(false)
-                })
-                .create_option(|option| {
-                    option
-                        .name("probset")
-                        .description("problem set name (can be followed by colon and args)")
-                        .kind(serenity::model::prelude::command::CommandOptionType::String)
-                        .required(false)
-                })
-        })
-        .await
-        .context("command cw-start-lesson registration failed")?;
-
-        Command::create_global_application_command(&ctx.http, |command| {
-            command
-                .name("cw-end-lesson")
-                .description("end callsign lesson")
-        })
-        .await
-        .context("command cw-end-lesson registration failed")?;
-
-        Ok(())
+                        .required(false),
+                )
+                .add_option(
+                    CreateCommandOption::new(
+                        CommandOptionType::String,
+                        "probset",
+                        "problem set name (can be followed by colon and args)",
+                    )
+                    .required(false),
+                ),
+            CreateCommand::new("cw-end-lesson").description("end callsign lesson"),
+        ]
     }
 }

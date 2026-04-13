@@ -1,33 +1,19 @@
 use crate::bot::commands::get_value_i64;
-use anyhow::Context as _;
-use serenity::model::prelude::command::{Command, CommandOptionType};
-use serenity::model::prelude::interaction::application_command::CommandDataOption;
+use serenity::all::{CommandOptionType, CreateCommand, CreateCommandOption, ResolvedOption};
 
 impl crate::bot::Bot {
-    pub async fn register_command_neko(
-        &self,
-        ctx: &serenity::client::Context,
-    ) -> anyhow::Result<()> {
-        Command::create_global_application_command(&ctx.http, |command| {
-            command
-                .name("neko")
-                .description("猫のように鳴く")
-                .create_option(|option| {
-                    option
-                        .name("count")
-                        .description("にゃーんの回数")
-                        .kind(CommandOptionType::Integer)
-                        .min_int_value(1)
-                        .max_int_value(32)
-                        .required(false)
-                })
-        })
-        .await
-        .context("command neko registration failed")?;
-        Ok(())
+    pub fn register_command_neko() -> CreateCommand {
+        CreateCommand::new("neko")
+            .description("猫のように鳴く")
+            .add_option(
+                CreateCommandOption::new(CommandOptionType::Integer, "count", "にゃーんの回数")
+                    .min_int_value(1)
+                    .max_int_value(32)
+                    .required(false),
+            )
     }
 
-    pub fn run_command_neko(&self, options: &[CommandDataOption]) -> anyhow::Result<String> {
+    pub fn run_command_neko(&self, options: &[ResolvedOption]) -> anyhow::Result<String> {
         let count = options
             .iter()
             .find(|option| option.name == "count")

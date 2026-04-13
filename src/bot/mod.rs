@@ -2,12 +2,11 @@ mod commands;
 
 use std::sync::{Arc, Mutex};
 
+use serenity::all::{
+    ActivityData, Command, Context, CreateInteractionResponse, CreateInteractionResponseMessage,
+    EventHandler, Interaction, Message, Ready,
+};
 use serenity::async_trait;
-use serenity::model::gateway::Ready;
-use serenity::prelude::{Context, EventHandler};
-
-use serenity::model::application::interaction::{Interaction, InteractionResponseType};
-use serenity::model::channel::Message;
 
 use anyhow::Context as _;
 
@@ -158,24 +157,29 @@ impl Bot {
 impl EventHandler for Bot {
     // Botが起動したときに走る処理
     async fn ready(&self, ctx: Context, ready: Ready) {
-        ctx.set_activity(serenity::model::gateway::Activity::listening("7.074MHz"))
-            .await;
+        ctx.set_activity(Some(ActivityData::listening("7.074MHz")));
         log::info!("{} is connected!", ready.user.name);
 
-        let _ = self.register_command_neko(&ctx).await;
-        let _ = self.register_commands_vc(&ctx).await;
-        let _ = self.register_commands_cw(&ctx).await;
-        let _ = self.register_commands_cw_lesson(&ctx).await;
-        let _ = self.register_commands_cw_lesson_long(&ctx).await;
+        let mut cmds = vec![];
+        cmds.push(Self::register_command_neko());
+        cmds.extend_from_slice(&Self::register_commands_vc());
+        cmds.extend_from_slice(&Self::register_commands_cw());
+        cmds.extend_from_slice(&Self::register_commands_cw_lesson());
+        cmds.push(Self::register_commands_cw_lesson_long());
+        let r = Command::set_global_commands(&ctx.http, cmds).await;
+        if let Err(why) = r {
+            log::error!("Couldn't register slash commands: {}", why);
+        }
+
         log::info!("commands registered");
     }
 
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
-        if let Interaction::ApplicationCommand(command) = interaction {
+        if let Interaction::Command(command) = interaction {
             log::info!("got command: {}", command.data.name);
 
             let content = match command.data.name.as_str() {
-                "neko" => self.run_command_neko(&command.data.options),
+                "neko" => self.run_command_neko(&command.data.options()),
                 "cw-join" => self.run_command_join(&ctx, &command).await,
                 "cw-leave" => self.run_command_leave(&ctx, &command).await,
                 "cw-speed" => self.run_command_speed(&ctx, &command).await,
@@ -194,14 +198,10 @@ impl EventHandler for Bot {
                 return;
             }
 
-            if let Err(why) = command
-                .create_interaction_response(&ctx.http, |response| {
-                    response
-                        .kind(InteractionResponseType::ChannelMessageWithSource)
-                        .interaction_response_data(|message| message.content(content))
-                })
-                .await
-            {
+            let data = CreateInteractionResponseMessage::new().content(content);
+            let builder = CreateInteractionResponse::Message(data);
+
+            if let Err(why) = command.create_response(&ctx.http, builder).await {
                 log::error!("Cannot respond to slash command: {}", why);
             }
         }
@@ -217,7 +217,7 @@ impl EventHandler for Bot {
             return;
         };
 
-        let Ok(cid) = self.get_call_txt_ch(gid.0) else {
+        let Ok(cid) = self.get_call_txt_ch(gid.into()) else {
             return;
         };
 
@@ -225,7 +225,7 @@ impl EventHandler for Bot {
             return;
         }
 
-        let mode = match self.get_call_mode(gid.0) {
+        let mode = match self.get_call_mode(gid.into()) {
             Ok(m) => m,
             Err(e) => {
                 log::error!("{:#}", e);

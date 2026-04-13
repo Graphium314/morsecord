@@ -4,17 +4,36 @@ pub mod cw_lesson_long;
 pub mod neko;
 pub mod vc;
 
-use anyhow::Context as _;
-use serenity::json::Value;
+use serenity::{all::PartialChannel, model::application::ResolvedValue};
 
-pub fn get_value_f64(v: &Option<Value>) -> anyhow::Result<f64> {
-    v.as_ref()
-        .context("empty value error")
-        .and_then(|v| v.as_f64().context("type error"))
+pub fn get_value_f64(v: &ResolvedValue) -> anyhow::Result<f64> {
+    if let ResolvedValue::Number(n) = v {
+        Ok(*n)
+    } else {
+        anyhow::bail!("type error. got {:?}", v)
+    }
 }
 
-pub fn get_value_i64(v: &Option<Value>) -> anyhow::Result<i64> {
-    v.as_ref()
-        .context("empty value error")
-        .and_then(|v| v.as_i64().context("type error"))
+pub fn get_value_i64(v: &ResolvedValue) -> anyhow::Result<i64> {
+    if let ResolvedValue::Integer(n) = v {
+        Ok(*n)
+    } else {
+        anyhow::bail!("type error. got {:?}", v)
+    }
+}
+
+pub fn get_value_str<'a>(v: &ResolvedValue<'a>) -> anyhow::Result<&'a str> {
+    if let ResolvedValue::String(s) = v {
+        Ok(s)
+    } else {
+        anyhow::bail!("type error. got {:?}", v)
+    }
+}
+
+pub fn get_value_channel<'a>(v: &ResolvedValue<'a>) -> anyhow::Result<&'a PartialChannel> {
+    if let ResolvedValue::Channel(ch) = v {
+        Ok(ch)
+    } else {
+        anyhow::bail!("type error. got {:?}", v)
+    }
 }

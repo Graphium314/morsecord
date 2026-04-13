@@ -27,7 +27,7 @@ pub async fn on_message(ctx: &Context, msg: &Message, db: &sqlx::SqlitePool) -> 
         let mut handler = handler.lock().await;
         let source = crate::cw_audio::CWAudioPCM::new(s.to_string(), speed, freq, SAMPLE_RATE_RAW)
             .to_input();
-        handler.play_source(source);
+        handler.play_input(source);
     }
     Ok(())
 }

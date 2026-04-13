@@ -56,7 +56,7 @@ pub async fn start(
     };
     let source = CWAudioPCM::new(" ".to_string() + &text, speed, freq, SAMPLE_RATE_RAW).to_input();
     let mut handler = call.lock().await;
-    handler.play_only_source(source);
+    handler.play_only_input(source);
     Ok(())
 }
 
@@ -102,10 +102,10 @@ pub async fn on_message(
 }
 
 pub fn prob_alpha(length: usize) -> anyhow::Result<String> {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let mut s = String::with_capacity(length * 3 / 2);
     for i in 0..length {
-        let c = rng.gen_range(b'A'..=b'Z') as char;
+        let c = rng.random_range(b'A'..=b'Z') as char;
         s.push(c);
 
         if i % 5 == 4 {
@@ -133,10 +133,10 @@ pub fn prob_koch_method(length: usize, args: &str) -> anyhow::Result<String> {
 
     let allowed_chars = &KOCH_CHARS[0..level + 1];
 
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let mut s = String::with_capacity(length * 3 / 2);
     for i in 0..length {
-        let c = allowed_chars[rng.gen_range(0..allowed_chars.len()) as usize];
+        let c = allowed_chars[rng.random_range(0..allowed_chars.len()) as usize];
         s.push(c);
         if i % 5 == 4 {
             s.push(' ');

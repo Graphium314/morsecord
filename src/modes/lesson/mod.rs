@@ -311,7 +311,7 @@ async fn play(
                 let source =
                     crate::cw_audio::CWAudioPCM::new(s.clone(), speed, freq, SAMPLE_RATE_RAW)
                         .to_input();
-                handler.play_only_source(source);
+                handler.play_only_input(source);
 
                 state
                     .lock()
@@ -360,8 +360,8 @@ pub async fn play_next(
         state.current_repeat = 0;
 
         state.last_ans = Some(next_str);
-        state.last_speed = rand::thread_rng().gen_range(state.speed_range.clone());
-        state.last_freq = rand::thread_rng().gen_range(state.freq_range.clone());
+        state.last_speed = rand::rng().random_range(state.speed_range.clone());
+        state.last_freq = rand::rng().random_range(state.freq_range.clone());
         state.answered = false;
     }
 
@@ -369,6 +369,6 @@ pub async fn play_next(
 }
 
 fn rand_char(s: &str) -> &str {
-    let i = rand::thread_rng().gen_range(0..s.len());
+    let i = rand::rng().random_range(0..s.len());
     &s[i..i + 1]
 }

@@ -1,4 +1,4 @@
-use songbird::input::{reader::MediaSource, Input};
+use songbird::input::{core::io::MediaSource, Input};
 
 pub struct CWAudioPCM {
     epos: usize,                // current position in the events
@@ -69,9 +69,12 @@ impl CWAudioPCM {
     }
 
     pub fn to_input(self) -> Input {
-        Input::float_pcm(
-            false,
-            songbird::input::reader::Reader::Extension(std::boxed::Box::new(self)),
+        Input::Live(
+            songbird::input::LiveInput::Raw(songbird::input::AudioStream {
+                input: std::boxed::Box::new(self),
+                hint: None,
+            }),
+            None,
         )
     }
 }

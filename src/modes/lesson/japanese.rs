@@ -48,9 +48,9 @@ pub struct JapaneseFiveCharGen;
 
 impl JapaneseFiveCharGen {
     fn random_char() -> char {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let chars: Vec<char> = KATAKANA.chars().collect();
-        chars[rng.gen_range(0..chars.len())]
+        chars[rng.random_range(0..chars.len())]
     }
 }
 

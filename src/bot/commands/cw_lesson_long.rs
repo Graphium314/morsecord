@@ -1,12 +1,10 @@
 use anyhow::Context as _;
-use serenity::{
-    model::application::{
-        command::Command, interaction::application_command::ApplicationCommandInteraction,
-    },
-    prelude::Context,
-};
+use serenity::all::{CreateCommand, CreateCommandOption};
+use serenity::model::application::{CommandInteraction, CommandOptionType};
+use serenity::prelude::Context;
 use std::sync::{Arc, Mutex};
 
+use crate::bot::commands::{get_value_f64, get_value_str};
 use crate::{
     bot::BotStateMode,
     modes::lesson_long::{start, LessonLongModeState},
@@ -16,25 +14,25 @@ impl crate::bot::Bot {
     pub async fn run_command_lesson_long_start(
         &self,
         ctx: &Context,
-        command: &ApplicationCommandInteraction,
+        command: &CommandInteraction,
     ) -> anyhow::Result<String> {
         let mut probset = "alpha".to_string();
         let mut length = None;
         let mut speed = None;
         let mut freq = None;
 
-        for option in &command.data.options {
-            let v = option.value.as_ref().context("value empty")?;
-            let vf = v.as_f64().map(|x| x as f32).context("value is not f64");
-            let vs = v.as_str().context("value is not string");
+        for option in &command.data.options() {
+            let v = &option.value;
+            let vf = get_value_f64(v)
+                .map(|x| x as f32)
+                .context("value is not f64");
+            let vs = get_value_str(v).context("value is not str");
 
-            match option.name.as_str() {
+            match option.name {
                 "speed" => speed = Some(vf?),
                 "freq" => freq = Some(vf?),
                 "probset" => probset = vs?.to_string(),
-                "length" => {
-                    length = Some(v.as_f64().context("value is not f64")? as usize);
-                }
+                "length" => length = Some(vf? as usize),
                 _ => (),
             }
         }
@@ -55,7 +53,7 @@ impl crate::bot::Bot {
         start(ctx, gid, state.clone())
             .await
             .context("internal error")?;
-        self.switch_mode(gid.0, BotStateMode::LessonLong(state))?;
+        self.switch_mode(gid.into(), BotStateMode::LessonLong(state))?;
 
         Ok("let's start long lesson".to_string())
     }
@@ -63,54 +61,35 @@ impl crate::bot::Bot {
     pub async fn run_command_lesson_long_end(
         &self,
         _ctx: &Context,
-        command: &ApplicationCommandInteraction,
+        command: &CommandInteraction,
     ) -> anyhow::Result<String> {
         let r = self.switch_mode(
-            command.guild_id.context("no guild")?.0,
+            command.guild_id.context("no guild")?.into(),
             BotStateMode::Normal,
         )?;
         Ok(r)
     }
 
-    pub async fn register_commands_cw_lesson_long(&self, ctx: &Context) -> anyhow::Result<()> {
-        Command::create_global_application_command(&ctx.http, |command| {
-            command
-                .name("cw-start-long-lesson")
-                .description("start long lesson")
-                .create_option(|option| {
-                    option
-                        .name("probset")
-                        .description("problem set name")
-                        .kind(serenity::model::prelude::command::CommandOptionType::String)
-                        .required(false)
-                })
-                .create_option(|option| {
-                    option
-                        .name("length")
-                        .description("problem length")
-                        .kind(serenity::model::prelude::command::CommandOptionType::Number)
-                        .required(false)
-                })
-                .create_option(|option| {
-                    option
-                        .name("speed")
-                        .description("speed in WPM")
-                        .kind(serenity::model::prelude::command::CommandOptionType::Number)
-                        .min_number_value(5.0)
-                        .required(false)
-                })
-                .create_option(|option| {
-                    option
-                        .name("freq")
-                        .description("frequency in Hz")
-                        .kind(serenity::model::prelude::command::CommandOptionType::Number)
-                        .min_number_value(200.0)
-                        .required(false)
-                })
-        })
-        .await
-        .context("command cw-start-long-lesson registration failed")?;
-
-        Ok(())
+    pub fn register_commands_cw_lesson_long() -> CreateCommand {
+        CreateCommand::new("cw-start-long-lesson")
+            .description("start long lesson")
+            .add_option(
+                CreateCommandOption::new(CommandOptionType::String, "probset", "problem set name")
+                    .required(false),
+            )
+            .add_option(
+                CreateCommandOption::new(CommandOptionType::Number, "length", "problem length")
+                    .required(false),
+            )
+            .add_option(
+                CreateCommandOption::new(CommandOptionType::Number, "speed", "speed in WPM")
+                    .min_number_value(5.0)
+                    .required(false),
+            )
+            .add_option(
+                CreateCommandOption::new(CommandOptionType::Number, "freq", "frequency in Hz")
+                    .min_number_value(200.0)
+                    .required(false),
+            )
     }
 }

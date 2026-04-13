@@ -1,7 +1,6 @@
 use anyhow::Context as _;
-use serenity::model::application::command::Command;
-use serenity::model::prelude::application_command::ApplicationCommandInteraction;
-use serenity::model::prelude::command::CommandOptionType;
+use serenity::all::{CreateCommand, CreateCommandOption};
+use serenity::model::application::{CommandInteraction, CommandOptionType};
 use serenity::prelude::Context;
 
 use crate::bot::commands::get_value_f64;
@@ -10,11 +9,11 @@ impl crate::bot::Bot {
     pub async fn run_command_speed(
         &self,
         _ctx: &Context,
-        command: &ApplicationCommandInteraction,
+        command: &CommandInteraction,
     ) -> anyhow::Result<String> {
         let new_speed = command
             .data
-            .options
+            .options()
             .iter()
             .find(|option| option.name == "speed")
             .map(|option| get_value_f64(&option.value))
@@ -33,11 +32,11 @@ impl crate::bot::Bot {
     pub async fn run_command_freq(
         &self,
         _ctx: &Context,
-        command: &ApplicationCommandInteraction,
+        command: &CommandInteraction,
     ) -> anyhow::Result<String> {
         let new_freq = command
             .data
-            .options
+            .options()
             .iter()
             .find(|option| option.name == "freq")
             .map(|option| get_value_f64(&option.value))
@@ -53,39 +52,22 @@ impl crate::bot::Bot {
         Ok("ok!".to_string())
     }
 
-    pub async fn register_commands_cw(&self, ctx: &Context) -> anyhow::Result<()> {
-        Command::create_global_application_command(&ctx.http, |command| {
-            command
-                .name("cw-speed")
+    pub fn register_commands_cw() -> [CreateCommand; 2] {
+        [
+            CreateCommand::new("cw-speed")
                 .description("set cw speed")
-                .create_option(|option| {
-                    option
-                        .name("speed")
-                        .description("speed(wpm)")
-                        .kind(CommandOptionType::Number)
+                .add_option(
+                    CreateCommandOption::new(CommandOptionType::Number, "speed", "speed(wpm)")
                         .min_number_value(5.0)
-                        .required(true)
-                })
-        })
-        .await
-        .context("command cw-speed registration failed")?;
-
-        Command::create_global_application_command(&ctx.http, |command| {
-            command
-                .name("cw-freq")
+                        .required(true),
+                ),
+            CreateCommand::new("cw-freq")
                 .description("set cw freq")
-                .create_option(|option| {
-                    option
-                        .name("freq")
-                        .description("freq (Hz)")
-                        .kind(CommandOptionType::Number)
+                .add_option(
+                    CreateCommandOption::new(CommandOptionType::Number, "freq", "freq (Hz)")
                         .min_number_value(10.0)
-                        .required(true)
-                })
-        })
-        .await
-        .context("command cw-freq registration failed")?;
-
-        Ok(())
+                        .required(true),
+                ),
+        ]
     }
 }

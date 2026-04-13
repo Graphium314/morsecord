@@ -335,8 +335,8 @@ impl Iterator for ACAGNumberGen {
     type Item = LessonAnswerBox;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let mut rng = rand::thread_rng();
-        let idx = rng.gen_range(0..self.acag_nr.len());
+        let mut rng = rand::rng();
+        let idx = rng.random_range(0..self.acag_nr.len());
         let s = self.acag_nr[idx].clone();
 
         let s = match rand::random::<u8>() {

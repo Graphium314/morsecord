@@ -34,8 +34,8 @@ impl Iterator for AllJANumberGen {
     type Item = LessonAnswerBox;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let mut rng = rand::thread_rng();
-        let s = self.allja_nr[rng.gen_range(0..self.allja_nr.len())].clone();
+        let mut rng = rand::rng();
+        let s = self.allja_nr[rng.random_range(0..self.allja_nr.len())].clone();
 
         let s = match rand::random::<u8>() {
             0..=99 => s + "H",
