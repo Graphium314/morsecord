@@ -26,10 +26,10 @@ impl crate::bot::Bot {
         let ch = get_ch(command)?;
         let gid = command.guild_id.context("not in guild")?;
 
-        self.add_call_state(gid.into(), command.channel_id)?;
-
         let man = songbird::get(ctx).await.expect("init songbird").clone();
         let handler = man.join(gid, ch.id).await.context("join failed")?;
+
+        self.add_call_state(gid.into(), command.channel_id)?;
 
         {
             let mut handler = handler.lock().await;

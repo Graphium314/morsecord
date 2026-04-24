@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 
 use serenity::all::{
     ActivityData, Command, Context, CreateInteractionResponse, CreateInteractionResponseMessage,
-    EventHandler, Interaction, Message, Ready,
+    EditInteractionResponse, EventHandler, Interaction, Message, Ready,
 };
 use serenity::async_trait;
 
@@ -178,6 +178,17 @@ impl EventHandler for Bot {
         if let Interaction::Command(command) = interaction {
             log::info!("got command: {}", command.data.name);
 
+            // VC commands can take >3s (DAVE handshake), so defer immediately
+            let needs_defer = matches!(command.data.name.as_str(), "cw-join" | "cw-leave");
+
+            if needs_defer {
+                let defer = CreateInteractionResponse::Defer(CreateInteractionResponseMessage::new());
+                if let Err(why) = command.create_response(&ctx.http, defer).await {
+                    log::error!("Cannot defer slash command: {}", why);
+                    return;
+                }
+            }
+
             let content = match command.data.name.as_str() {
                 "neko" => self.run_command_neko(&command.data.options()),
                 "cw-join" => self.run_command_join(&ctx, &command).await,
@@ -198,11 +209,17 @@ impl EventHandler for Bot {
                 return;
             }
 
-            let data = CreateInteractionResponseMessage::new().content(content);
-            let builder = CreateInteractionResponse::Message(data);
-
-            if let Err(why) = command.create_response(&ctx.http, builder).await {
-                log::error!("Cannot respond to slash command: {}", why);
+            if needs_defer {
+                let edit = EditInteractionResponse::new().content(content);
+                if let Err(why) = command.edit_response(&ctx.http, edit).await {
+                    log::error!("Cannot edit slash command response: {}", why);
+                }
+            } else {
+                let data = CreateInteractionResponseMessage::new().content(content);
+                let builder = CreateInteractionResponse::Message(data);
+                if let Err(why) = command.create_response(&ctx.http, builder).await {
+                    log::error!("Cannot respond to slash command: {}", why);
+                }
             }
         }
     }

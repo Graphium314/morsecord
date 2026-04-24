@@ -69,7 +69,6 @@ impl CWAudioPCM {
     }
 
     pub fn to_input(self) -> Input {
-        eprintln!("to_input called");
         let srate = self.srate as u32;
         songbird::input::RawAdapter::new(self, srate, 1).into()
     }
@@ -77,13 +76,9 @@ impl CWAudioPCM {
 
 impl MediaSource for CWAudioPCM {
     fn is_seekable(&self) -> bool {
-        eprintln!("is_seekable called");
         false
     }
     fn byte_len(&self) -> Option<u64> {
-        eprintln!("byte_len called");
-        // None
-
         self.events
             .iter()
             .map(|(len, _)| len * std::mem::size_of::<f32>())
@@ -95,14 +90,13 @@ impl MediaSource for CWAudioPCM {
 
 impl std::io::Read for CWAudioPCM {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        eprintln!("read called for {} bytes", buf.len());
         let head = buf.as_ptr();
         let (_, mut s, _) = unsafe { buf.align_to_mut::<f32>() };
 
         // envelope length in samples
         let env_len: usize = ((ENV_MS / 1000.0) * self.srate as f32) as usize;
 
-        while self.epos + 1 < self.events.len() && !s.is_empty() {
+        while self.epos < self.events.len() && !s.is_empty() {
             let (length, on) = self.events[self.epos];
             let t = length - self.spos;
 
@@ -142,7 +136,6 @@ impl std::io::Read for CWAudioPCM {
                 break;
             }
         }
-        eprintln!("wrote {} bytes", head as usize - s.as_ptr() as usize);
         Ok(s.as_ptr() as usize - head as usize)
     }
 }

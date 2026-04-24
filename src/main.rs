@@ -24,8 +24,8 @@ fn init_logger() {
     let base_config = fern::Dispatch::new();
 
     let stderr_config = fern::Dispatch::new()
-        .level(log::LevelFilter::Debug)
-        .level_for("morsecord", log::LevelFilter::Debug)
+        .level(log::LevelFilter::Warn)
+        .level_for("morsecord", log::LevelFilter::Info)
         .format(|out, message, record| {
             out.finish(format_args!(
                 "{}[{}][{}] {}",
