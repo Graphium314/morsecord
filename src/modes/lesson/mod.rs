@@ -206,17 +206,6 @@ pub async fn on_message(
     };
 
     if ans.check(&s) {
-        msg.react(
-            &ctx.http,
-            if answered {
-                ReactionType::from('⭕')
-            } else {
-                ReactionType::from('🥇')
-            },
-        )
-        .await
-        .context("react failed")?;
-
         {
             let mut st = state
                 .lock()
@@ -269,6 +258,17 @@ pub async fn on_message(
                 Ok::<(), anyhow::Error>(())
             });
         }
+
+        msg.react(
+            &ctx.http,
+            if answered {
+                ReactionType::from('⭕')
+            } else {
+                ReactionType::from('🥇')
+            },
+        )
+        .await
+        .context("react failed")?;
     } else if s.starts_with("||") && s.ends_with("||") && ans.check(&s[2..s.len() - 2]) {
         msg.react(&ctx.http, ReactionType::from('⭕'))
             .await
